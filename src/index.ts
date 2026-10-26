@@ -1,29 +1,547 @@
-import{digest,invariant,nonempty,requireScope,validTime,validateRef,newId}from'./contracts.ts';import type{Context,Json,Ref,Scope}from'./contracts.ts';
-export type Binding={ref:Ref;sha256:string};
-export type Artifact=Binding&{label:string;sourceBindings:readonly Binding[];visibility:'private';rightsDecision:Binding;consentDecision:Binding;editorialDecision:Binding;};
-export type Policy={revision:number;externalEnabled:boolean;allowedDestinations:readonly string[];ownerIds:readonly string[];};
-export type Approval={actorId:string;manifestHash:string;policyRevision:number;approvedAt:string;expiresAt:string;};
-export type Manifest={id:string;revision:number;artifacts:readonly Artifact[];audience:string;destination:string;external:boolean;createdAt:string;createdBy:string;approval:Approval|null;state:'proposed'|'approved'|'invalidated'|'withdrawal-required'|'withdrawn'|'handed-off'|'uncertain'|'delivered';reason:string|null;handoffId:string|null;receipt:Binding|null;};
-export type ReleaseEvent={id:string;type:string;manifestId:string;actorId:string;at:string;reason:string|null;};
-export type ReleaseState=Scope&{schemaVersion:1;policy:Policy;manifests:readonly Manifest[];events:readonly ReleaseEvent[];};
-export type CurrentInputs={artifacts:readonly Artifact[];rightsAllowed:boolean;consentAllowed:boolean;editorialApproved:boolean;policyRevision:number;};
-function guard(c:Context,s:ReleaseState){requireScope(c,s);validTime(c.now);}
-function owner(c:Context,s:ReleaseState){guard(c,s);invariant(c.actor.kind==='human'&&c.actor.roles.includes('owner')&&s.policy.ownerIds.includes(c.actor.id),'owner_required','An authenticated listed human owner is required');}
-function gateway(c:Context,s:ReleaseState){guard(c,s);invariant(c.actor.kind==='human'&&c.actor.roles.includes('owner')&&s.policy.ownerIds.includes(c.actor.id)||c.actor.kind==='service'&&c.actor.roles.includes('publication:gateway'),'gateway_required','An authenticated owner or publication gateway is required');}
-function binding(c:Context,b:Binding){validateRef(b.ref);requireScope(c,b.ref);invariant(/^[a-f0-9]{64}$/.test(b.sha256),'invalid_digest','Exact SHA256 required');}
-function artifacts(c:Context,items:readonly Artifact[]){invariant(items.length>0&&items.length<=1000,'invalid_package','Package requires1-1000artifacts');const ids=new Set<string>();for(const a of items){binding(c,a);nonempty(a.label,'artifact label',200);invariant(a.visibility==='private','invalid_projection','Packaging begins with private artifacts');binding(c,a.rightsDecision);binding(c,a.consentDecision);binding(c,a.editorialDecision);for(const source of a.sourceBindings)binding(c,source);const key=a.ref.kind+':'+a.ref.id;invariant(!ids.has(key),'duplicate_artifact','Only one exact edition per artifact');ids.add(key);}}
-function latest(s:ReleaseState,id:string):Manifest{const m=s.manifests.filter(m=>m.id===id).at(-1);invariant(m,'not_found','Manifest not found');return m;}
-function evolve(c:Context,s:ReleaseState,m:Manifest,type:string):ReleaseState{return{...s,manifests:[...s.manifests,structuredClone(m)],events:[...s.events,{id:newId(),type,manifestId:m.id,actorId:c.actor.id,at:c.now,reason:m.reason}]};}
-export function manifestHash(m:Manifest):string{return digest({id:m.id,revision:m.revision,artifacts:m.artifacts,audience:m.audience,destination:m.destination,external:m.external,createdAt:m.createdAt,createdBy:m.createdBy});}
-export function createReleaseState(c:Context,owners:readonly string[]):ReleaseState{invariant(c.actor.kind==='human'&&c.actor.roles.includes('owner')&&owners.includes(c.actor.id)&&owners.length>0&&new Set(owners).size===owners.length,'owner_required','Release control requires a listed human owner');owners.forEach(x=>nonempty(x,'owner',128));return{tenantId:c.tenantId,projectId:c.projectId,schemaVersion:1,policy:{revision:1,externalEnabled:false,allowedDestinations:[],ownerIds:[...owners]},manifests:[],events:[]};}
-export function propose(c:Context,s:ReleaseState,input:{id:string;artifacts:readonly Artifact[];audience:string;destination:string;external:boolean}):ReleaseState{guard(c,s);nonempty(input.id,'manifest id',128);nonempty(input.audience,'audience',200);nonempty(input.destination,'destination',200);invariant(typeof input.external==='boolean','invalid_package','Explicit external flag required');invariant(!s.manifests.some(m=>m.id===input.id),'duplicate_manifest','Manifest identity exists');artifacts(c,input.artifacts);return evolve(c,s,{...structuredClone(input),revision:1,createdAt:c.now,createdBy:c.actor.id,approval:null,state:'proposed',reason:null,handoffId:null,receipt:null},'manifest.proposed');}
-export function setReleasePolicy(c:Context,s:ReleaseState,input:{expectedRevision:number;externalEnabled:boolean;allowedDestinations:readonly string[];reason:string}):ReleaseState{owner(c,s);invariant(input.expectedRevision===s.policy.revision,'stale_policy','Release policy changed');nonempty(input.reason,'policy reason');invariant(typeof input.externalEnabled==='boolean'&&new Set(input.allowedDestinations).size===input.allowedDestinations.length,'invalid_policy','Invalid policy');input.allowedDestinations.forEach(x=>nonempty(x,'destination',200));const next={...s,policy:{...s.policy,revision:s.policy.revision+1,externalEnabled:input.externalEnabled,allowedDestinations:[...input.allowedDestinations]}};return{...next,events:[...s.events,{id:newId(),type:'policy.changed',manifestId:'',actorId:c.actor.id,at:c.now,reason:input.reason}]};}
-function current(c:Context,s:ReleaseState,m:Manifest,input:CurrentInputs){artifacts(c,input.artifacts);invariant(input.policyRevision===s.policy.revision,'stale_policy','Current policy must be read at gateway');invariant(digest(m.artifacts)===digest(input.artifacts),'stale_artifact','Artifact or dependent decision edition changed');invariant(input.rightsAllowed&&input.consentAllowed&&input.editorialApproved,'release_not_ready','Current rights consent and editorial decisions must all approve');if(m.external)invariant(s.policy.externalEnabled&&s.policy.allowedDestinations.includes(m.destination),'publisher_disabled','External publication is disabled or destination is not approved');}
-export function approve(c:Context,s:ReleaseState,id:string,input:CurrentInputs,expiresAt:string):ReleaseState{owner(c,s);const m=latest(s,id);invariant(m.state==='proposed','invalid_state','Only a proposed manifest can be approved');current(c,s,m,input);invariant(validTime(expiresAt)>validTime(c.now)&&validTime(expiresAt)-validTime(c.now)<=86400000,'invalid_expiry','Approval lifetime is at most24hours');const approval={actorId:c.actor.id,manifestHash:manifestHash(m),policyRevision:s.policy.revision,approvedAt:c.now,expiresAt};return evolve(c,s,{...m,revision:m.revision+1,approval,state:'approved'},'manifest.approved');}
-export function checkRelease(c:Context,s:ReleaseState,id:string,input:CurrentInputs):Manifest{guard(c,s);const m=latest(s,id);invariant(m.state==='approved'&&m.approval!==null,'not_authorized','Manifest lacks an active approval');invariant(m.approval.policyRevision===s.policy.revision&&s.policy.ownerIds.includes(m.approval.actorId),'stale_approval','Owner policy changed');invariant(validTime(c.now)<validTime(m.approval.expiresAt),'expired_approval','Manifest approval expired');const approvedEdition={...m,revision:m.revision-1};invariant(m.approval.manifestHash===manifestHash(approvedEdition),'manifest_changed','Manifest content differs from approval');current(c,s,m,input);return structuredClone(m);}
-export function preparePrivateExport(c:Context,s:ReleaseState,id:string,input:CurrentInputs):Json{const m=checkRelease(c,s,id,input);invariant(!m.external,'external_manifest','Private export requires a private destination');return JSON.parse(JSON.stringify({schemaVersion:1,visibility:'private',manifest:m,manifestHash:manifestHash(m),sourceCompanion:m.artifacts.flatMap(a=>a.sourceBindings)}))as Json;}
-export function beginDispatch(c:Context,s:ReleaseState,id:string,input:CurrentInputs,handoffId:string):ReleaseState{gateway(c,s);nonempty(handoffId,'handoff id',128);const m=checkRelease(c,s,id,input);invariant(m.external,'private_manifest','External gateway accepts only external manifests');invariant(!s.manifests.some(m=>m.handoffId===handoffId),'duplicate_handoff','Handoff identity already used');return evolve(c,s,{...m,revision:m.revision+1,state:'handed-off',handoffId},'publication.handed_off');}
-export function recordDelivery(c:Context,s:ReleaseState,id:string,handoffId:string,receipt:Binding|null):ReleaseState{gateway(c,s);const m=latest(s,id);invariant(['handed-off','uncertain','withdrawal-required'].includes(m.state)&&m.handoffId===handoffId,'invalid_handoff','Delivery does not match a pending handoff');if(receipt)binding(c,receipt);return evolve(c,s,{...m,revision:m.revision+1,state:m.state==='withdrawal-required'?'withdrawal-required':receipt?'delivered':'uncertain',receipt:structuredClone(receipt)},receipt?'publication.delivered':'publication.uncertain');}
-export function invalidate(c:Context,s:ReleaseState,cause:Binding,reason:string):ReleaseState{guard(c,s);binding(c,cause);nonempty(reason,'correction reason');let next=s;const ids=[...new Set(s.manifests.map(m=>m.id))];for(const id of ids){const m=latest(next,id);const all=m.artifacts.flatMap(a=>[a,...a.sourceBindings,a.rightsDecision,a.consentDecision,a.editorialDecision]);if(!['invalidated','withdrawal-required','withdrawn'].includes(m.state)&&all.some(b=>digest(b)===digest(cause)))next=evolve(c,next,{...m,revision:m.revision+1,state:['delivered','handed-off','uncertain'].includes(m.state)?'withdrawal-required':'invalidated',reason},'manifest.corrected');}return next;}
+import {
+  digest,
+  invariant,
+  nonempty,
+  requireScope,
+  validTime,
+  validateRef,
+  newId,
+} from "./contracts.ts";
+import type { Context, Json, Ref, Scope } from "./contracts.ts";
+export type Binding = { ref: Ref; sha256: string };
+export type Artifact = Binding & {
+  label: string;
+  sourceBindings: readonly Binding[];
+  visibility: "private";
+  rightsDecision: Binding;
+  consentDecision: Binding;
+  editorialDecision: Binding;
+};
+export type Policy = {
+  revision: number;
+  externalEnabled: boolean;
+  allowedDestinations: readonly string[];
+  ownerIds: readonly string[];
+};
+export type Approval = {
+  actorId: string;
+  manifestHash: string;
+  policyRevision: number;
+  approvedAt: string;
+  expiresAt: string;
+};
+export type Manifest = {
+  id: string;
+  revision: number;
+  artifacts: readonly Artifact[];
+  audience: string;
+  destination: string;
+  external: boolean;
+  createdAt: string;
+  createdBy: string;
+  approval: Approval | null;
+  state:
+    | "proposed"
+    | "approved"
+    | "invalidated"
+    | "withdrawal-required"
+    | "withdrawn"
+    | "handed-off"
+    | "uncertain"
+    | "delivered";
+  reason: string | null;
+  handoffId: string | null;
+  receipt: Binding | null;
+};
+export type ReleaseEvent = {
+  id: string;
+  type: string;
+  manifestId: string;
+  actorId: string;
+  at: string;
+  reason: string | null;
+};
+export type ReleaseState = Scope & {
+  schemaVersion: 1;
+  policy: Policy;
+  manifests: readonly Manifest[];
+  events: readonly ReleaseEvent[];
+};
+export type CurrentInputs = {
+  artifacts: readonly Artifact[];
+  rightsAllowed: boolean;
+  consentAllowed: boolean;
+  editorialApproved: boolean;
+  policyRevision: number;
+};
+function guard(c: Context, s: ReleaseState) {
+  requireScope(c, s);
+  validTime(c.now);
+}
+function owner(c: Context, s: ReleaseState) {
+  guard(c, s);
+  invariant(
+    c.actor.kind === "human" &&
+      c.actor.roles.includes("owner") &&
+      s.policy.ownerIds.includes(c.actor.id),
+    "owner_required",
+    "An authenticated listed human owner is required",
+  );
+}
+function gateway(c: Context, s: ReleaseState) {
+  guard(c, s);
+  invariant(
+    (c.actor.kind === "human" &&
+      c.actor.roles.includes("owner") &&
+      s.policy.ownerIds.includes(c.actor.id)) ||
+      (c.actor.kind === "service" &&
+        c.actor.roles.includes("publication:gateway")),
+    "gateway_required",
+    "An authenticated owner or publication gateway is required",
+  );
+}
+function binding(c: Context, b: Binding) {
+  validateRef(b.ref);
+  requireScope(c, b.ref);
+  invariant(
+    /^[a-f0-9]{64}$/.test(b.sha256),
+    "invalid_digest",
+    "Exact SHA256 required",
+  );
+}
+function artifacts(c: Context, items: readonly Artifact[]) {
+  invariant(
+    items.length > 0 && items.length <= 1000,
+    "invalid_package",
+    "Package requires1-1000artifacts",
+  );
+  const ids = new Set<string>();
+  for (const a of items) {
+    binding(c, a);
+    nonempty(a.label, "artifact label", 200);
+    invariant(
+      a.visibility === "private",
+      "invalid_projection",
+      "Packaging begins with private artifacts",
+    );
+    binding(c, a.rightsDecision);
+    binding(c, a.consentDecision);
+    binding(c, a.editorialDecision);
+    for (const source of a.sourceBindings) binding(c, source);
+    const key = a.ref.kind + ":" + a.ref.id;
+    invariant(
+      !ids.has(key),
+      "duplicate_artifact",
+      "Only one exact edition per artifact",
+    );
+    ids.add(key);
+  }
+}
+function latest(s: ReleaseState, id: string): Manifest {
+  const m = s.manifests.filter((m) => m.id === id).at(-1);
+  invariant(m, "not_found", "Manifest not found");
+  return m;
+}
+function evolve(
+  c: Context,
+  s: ReleaseState,
+  m: Manifest,
+  type: string,
+): ReleaseState {
+  return {
+    ...s,
+    manifests: [...s.manifests, structuredClone(m)],
+    events: [
+      ...s.events,
+      {
+        id: newId(),
+        type,
+        manifestId: m.id,
+        actorId: c.actor.id,
+        at: c.now,
+        reason: m.reason,
+      },
+    ],
+  };
+}
+export function manifestHash(m: Manifest): string {
+  return digest({
+    id: m.id,
+    revision: m.revision,
+    artifacts: m.artifacts,
+    audience: m.audience,
+    destination: m.destination,
+    external: m.external,
+    createdAt: m.createdAt,
+    createdBy: m.createdBy,
+  });
+}
+export function createReleaseState(
+  c: Context,
+  owners: readonly string[],
+): ReleaseState {
+  invariant(
+    c.actor.kind === "human" &&
+      c.actor.roles.includes("owner") &&
+      owners.includes(c.actor.id) &&
+      owners.length > 0 &&
+      new Set(owners).size === owners.length,
+    "owner_required",
+    "Release control requires a listed human owner",
+  );
+  owners.forEach((x) => nonempty(x, "owner", 128));
+  return {
+    tenantId: c.tenantId,
+    projectId: c.projectId,
+    schemaVersion: 1,
+    policy: {
+      revision: 1,
+      externalEnabled: false,
+      allowedDestinations: [],
+      ownerIds: [...owners],
+    },
+    manifests: [],
+    events: [],
+  };
+}
+export function propose(
+  c: Context,
+  s: ReleaseState,
+  input: {
+    id: string;
+    artifacts: readonly Artifact[];
+    audience: string;
+    destination: string;
+    external: boolean;
+  },
+): ReleaseState {
+  guard(c, s);
+  nonempty(input.id, "manifest id", 128);
+  nonempty(input.audience, "audience", 200);
+  nonempty(input.destination, "destination", 200);
+  invariant(
+    typeof input.external === "boolean",
+    "invalid_package",
+    "Explicit external flag required",
+  );
+  invariant(
+    !s.manifests.some((m) => m.id === input.id),
+    "duplicate_manifest",
+    "Manifest identity exists",
+  );
+  artifacts(c, input.artifacts);
+  return evolve(
+    c,
+    s,
+    {
+      ...structuredClone(input),
+      revision: 1,
+      createdAt: c.now,
+      createdBy: c.actor.id,
+      approval: null,
+      state: "proposed",
+      reason: null,
+      handoffId: null,
+      receipt: null,
+    },
+    "manifest.proposed",
+  );
+}
+export function setReleasePolicy(
+  c: Context,
+  s: ReleaseState,
+  input: {
+    expectedRevision: number;
+    externalEnabled: boolean;
+    allowedDestinations: readonly string[];
+    reason: string;
+  },
+): ReleaseState {
+  owner(c, s);
+  invariant(
+    input.expectedRevision === s.policy.revision,
+    "stale_policy",
+    "Release policy changed",
+  );
+  nonempty(input.reason, "policy reason");
+  invariant(
+    typeof input.externalEnabled === "boolean" &&
+      new Set(input.allowedDestinations).size ===
+        input.allowedDestinations.length,
+    "invalid_policy",
+    "Invalid policy",
+  );
+  input.allowedDestinations.forEach((x) => nonempty(x, "destination", 200));
+  const next = {
+    ...s,
+    policy: {
+      ...s.policy,
+      revision: s.policy.revision + 1,
+      externalEnabled: input.externalEnabled,
+      allowedDestinations: [...input.allowedDestinations],
+    },
+  };
+  return {
+    ...next,
+    events: [
+      ...s.events,
+      {
+        id: newId(),
+        type: "policy.changed",
+        manifestId: "",
+        actorId: c.actor.id,
+        at: c.now,
+        reason: input.reason,
+      },
+    ],
+  };
+}
+function current(
+  c: Context,
+  s: ReleaseState,
+  m: Manifest,
+  input: CurrentInputs,
+) {
+  artifacts(c, input.artifacts);
+  invariant(
+    input.policyRevision === s.policy.revision,
+    "stale_policy",
+    "Current policy must be read at gateway",
+  );
+  invariant(
+    digest(m.artifacts) === digest(input.artifacts),
+    "stale_artifact",
+    "Artifact or dependent decision edition changed",
+  );
+  invariant(
+    input.rightsAllowed === true &&
+      input.consentAllowed === true &&
+      input.editorialApproved === true,
+    "release_not_ready",
+    "Current rights consent and editorial decisions must all approve",
+  );
+  if (m.external)
+    invariant(
+      s.policy.externalEnabled &&
+        s.policy.allowedDestinations.includes(m.destination),
+      "publisher_disabled",
+      "External publication is disabled or destination is not approved",
+    );
+}
+export function approve(
+  c: Context,
+  s: ReleaseState,
+  id: string,
+  input: CurrentInputs,
+  expiresAt: string,
+): ReleaseState {
+  owner(c, s);
+  const m = latest(s, id);
+  invariant(
+    m.state === "proposed",
+    "invalid_state",
+    "Only a proposed manifest can be approved",
+  );
+  current(c, s, m, input);
+  invariant(
+    validTime(expiresAt) > validTime(c.now) &&
+      validTime(expiresAt) - validTime(c.now) <= 86400000,
+    "invalid_expiry",
+    "Approval lifetime is at most24hours",
+  );
+  const approval = {
+    actorId: c.actor.id,
+    manifestHash: manifestHash(m),
+    policyRevision: s.policy.revision,
+    approvedAt: c.now,
+    expiresAt,
+  };
+  return evolve(
+    c,
+    s,
+    { ...m, revision: m.revision + 1, approval, state: "approved" },
+    "manifest.approved",
+  );
+}
+export function checkRelease(
+  c: Context,
+  s: ReleaseState,
+  id: string,
+  input: CurrentInputs,
+): Manifest {
+  guard(c, s);
+  const m = latest(s, id);
+  invariant(
+    m.state === "approved" && m.approval !== null,
+    "not_authorized",
+    "Manifest lacks an active approval",
+  );
+  invariant(
+    m.approval.policyRevision === s.policy.revision &&
+      s.policy.ownerIds.includes(m.approval.actorId),
+    "stale_approval",
+    "Owner policy changed",
+  );
+  invariant(
+    validTime(c.now) < validTime(m.approval.expiresAt),
+    "expired_approval",
+    "Manifest approval expired",
+  );
+  const approvedEdition = { ...m, revision: m.revision - 1 };
+  invariant(
+    m.approval.manifestHash === manifestHash(approvedEdition),
+    "manifest_changed",
+    "Manifest content differs from approval",
+  );
+  current(c, s, m, input);
+  return structuredClone(m);
+}
+export function preparePrivateExport(
+  c: Context,
+  s: ReleaseState,
+  id: string,
+  input: CurrentInputs,
+): Json {
+  const m = checkRelease(c, s, id, input);
+  invariant(
+    !m.external,
+    "external_manifest",
+    "Private export requires a private destination",
+  );
+  return JSON.parse(
+    JSON.stringify({
+      schemaVersion: 1,
+      visibility: "private",
+      manifest: m,
+      manifestHash: manifestHash(m),
+      sourceCompanion: m.artifacts.flatMap((a) => a.sourceBindings),
+    }),
+  ) as Json;
+}
+export function beginDispatch(
+  c: Context,
+  s: ReleaseState,
+  id: string,
+  input: CurrentInputs,
+  handoffId: string,
+): ReleaseState {
+  gateway(c, s);
+  nonempty(handoffId, "handoff id", 128);
+  const m = checkRelease(c, s, id, input);
+  invariant(
+    m.external,
+    "private_manifest",
+    "External gateway accepts only external manifests",
+  );
+  invariant(
+    !s.manifests.some((m) => m.handoffId === handoffId),
+    "duplicate_handoff",
+    "Handoff identity already used",
+  );
+  return evolve(
+    c,
+    s,
+    { ...m, revision: m.revision + 1, state: "handed-off", handoffId },
+    "publication.handed_off",
+  );
+}
+export function recordDelivery(
+  c: Context,
+  s: ReleaseState,
+  id: string,
+  handoffId: string,
+  receipt: Binding | null,
+): ReleaseState {
+  gateway(c, s);
+  const m = latest(s, id);
+  invariant(
+    ["handed-off", "uncertain", "withdrawal-required"].includes(m.state) &&
+      m.handoffId === handoffId,
+    "invalid_handoff",
+    "Delivery does not match a pending handoff",
+  );
+  if (receipt) binding(c, receipt);
+  return evolve(
+    c,
+    s,
+    {
+      ...m,
+      revision: m.revision + 1,
+      state:
+        m.state === "withdrawal-required"
+          ? "withdrawal-required"
+          : receipt
+            ? "delivered"
+            : "uncertain",
+      receipt: structuredClone(receipt),
+    },
+    receipt ? "publication.delivered" : "publication.uncertain",
+  );
+}
+export function invalidate(
+  c: Context,
+  s: ReleaseState,
+  cause: Binding,
+  reason: string,
+): ReleaseState {
+  guard(c, s);
+  binding(c, cause);
+  nonempty(reason, "correction reason");
+  let next = s;
+  const ids = [...new Set(s.manifests.map((m) => m.id))];
+  for (const id of ids) {
+    const m = latest(next, id);
+    const all = m.artifacts.flatMap((a) => [
+      a,
+      ...a.sourceBindings,
+      a.rightsDecision,
+      a.consentDecision,
+      a.editorialDecision,
+    ]);
+    if (
+      !["invalidated", "withdrawal-required", "withdrawn"].includes(m.state) &&
+      all.some((b) => digest(b) === digest(cause))
+    )
+      next = evolve(
+        c,
+        next,
+        {
+          ...m,
+          revision: m.revision + 1,
+          state: ["delivered", "handed-off", "uncertain"].includes(m.state)
+            ? "withdrawal-required"
+            : "invalidated",
+          reason,
+        },
+        "manifest.corrected",
+      );
+  }
+  return next;
+}
 
-export function recordWithdrawal(c:Context,s:ReleaseState,id:string,proof:Binding):ReleaseState{gateway(c,s);binding(c,proof);const m=latest(s,id);invariant(m.state==='withdrawal-required','invalid_state','No pending withdrawal for this package');return evolve(c,s,{...m,revision:m.revision+1,state:'withdrawn',receipt:structuredClone(proof)},'publication.withdrawn');}
+export function recordWithdrawal(
+  c: Context,
+  s: ReleaseState,
+  id: string,
+  proof: Binding,
+): ReleaseState {
+  gateway(c, s);
+  binding(c, proof);
+  const m = latest(s, id);
+  invariant(
+    m.state === "withdrawal-required",
+    "invalid_state",
+    "No pending withdrawal for this package",
+  );
+  return evolve(
+    c,
+    s,
+    {
+      ...m,
+      revision: m.revision + 1,
+      state: "withdrawn",
+      receipt: structuredClone(proof),
+    },
+    "publication.withdrawn",
+  );
+}

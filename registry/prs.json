@@ -4,14 +4,17 @@
   "roadmapVersion": 1,
   "planVerified": true,
   "plannedPrCount": 6,
-  "observedAt": "2026-10-26T18:50:00Z",
+  "observedAt": "2026-10-26T20:25:00Z",
   "units": [
     {
       "id": "PRC-001",
       "title": "Immutable private package manifests and exact input bindings",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [],
+      "contributingPrs": [
+        1,
+        2
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": [],
@@ -19,14 +22,17 @@
         "Immutable private package manifests and exact input bindings"
       ],
       "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
-      "implementationStatus": "planned"
+      "implementationStatus": "Domain foundation merged; PR2 adds private durable control and exact current-decision checks. Integrated live acceptance remains separate."
     },
     {
       "id": "PRC-002",
       "title": "Owner authorization and version-bound release checks",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [],
+      "contributingPrs": [
+        1,
+        2
+      ],
       "dependsOn": [
         "PRC-001"
       ],
@@ -36,14 +42,17 @@
         "Owner authorization and version-bound release checks"
       ],
       "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
-      "implementationStatus": "planned"
+      "implementationStatus": "Domain foundation merged; PR2 adds private durable control and exact current-decision checks. Integrated live acceptance remains separate."
     },
     {
       "id": "PRC-003",
       "title": "Correction invalidation and withdrawal",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [],
+      "contributingPrs": [
+        1,
+        2
+      ],
       "dependsOn": [
         "PRC-002"
       ],
@@ -53,14 +62,16 @@
         "Correction invalidation and withdrawal"
       ],
       "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
-      "implementationStatus": "planned"
+      "implementationStatus": "Domain foundation merged; PR2 adds private durable control and exact current-decision checks. Integrated live acceptance remains separate."
     },
     {
       "id": "PRC-004",
       "title": "Durable publisher handoff reconciliation and reference pages",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [],
+      "contributingPrs": [
+        2
+      ],
       "dependsOn": [
         "PRC-002"
       ],
@@ -70,7 +81,7 @@
         "Durable publisher handoff reconciliation and reference pages"
       ],
       "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
-      "implementationStatus": "planned"
+      "implementationStatus": "Partial private durable control; external publisher handoff reconciliation and reference-page UI remain pending and disabled."
     },
     {
       "id": "PRC-005",
