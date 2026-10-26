@@ -1,0 +1,7 @@
+{
+  "sourceRepository": "neophilism/Identity-Authorization-and-Policy-Engine",
+  "sourceCommit": "2ecac5a7ec01e4470774ef545060b99dba38014d",
+  "sourcePath": "src/contracts.ts",
+  "sha256": "d86141cb7546a723f837a298e4ea6fef62692918f78f5aab2d72d6639987fcc5",
+  "mode": "vendored exact shared contract; no fork of identity authorization logic"
+}
