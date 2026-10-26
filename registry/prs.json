@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "repository": "neophilism/Packaging-release-and-correction-engine",
+  "roadmapVersion": 1,
+  "planVerified": true,
+  "plannedPrCount": 6,
+  "observedAt": "2026-10-26T18:50:00Z",
+  "units": [
+    {
+      "id": "PRC-001",
+      "title": "Immutable private package manifests and exact input bindings",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [],
+      "externalDependencies": [],
+      "externalPrerequisites": [],
+      "scope": [
+        "Immutable private package manifests and exact input bindings"
+      ],
+      "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
+      "implementationStatus": "planned"
+    },
+    {
+      "id": "PRC-002",
+      "title": "Owner authorization and version-bound release checks",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "PRC-001"
+      ],
+      "externalDependencies": [],
+      "externalPrerequisites": [],
+      "scope": [
+        "Owner authorization and version-bound release checks"
+      ],
+      "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
+      "implementationStatus": "planned"
+    },
+    {
+      "id": "PRC-003",
+      "title": "Correction invalidation and withdrawal",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "PRC-002"
+      ],
+      "externalDependencies": [],
+      "externalPrerequisites": [],
+      "scope": [
+        "Correction invalidation and withdrawal"
+      ],
+      "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
+      "implementationStatus": "planned"
+    },
+    {
+      "id": "PRC-004",
+      "title": "Durable publisher handoff reconciliation and reference pages",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "PRC-002"
+      ],
+      "externalDependencies": [],
+      "externalPrerequisites": [],
+      "scope": [
+        "Durable publisher handoff reconciliation and reference pages"
+      ],
+      "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
+      "implementationStatus": "planned"
+    },
+    {
+      "id": "PRC-005",
+      "title": "Private export adapters and accessibility review",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "PRC-003"
+      ],
+      "externalDependencies": [],
+      "externalPrerequisites": [],
+      "scope": [
+        "Private export adapters and accessibility review"
+      ],
+      "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
+      "implementationStatus": "planned"
+    },
+    {
+      "id": "PRC-006",
+      "title": "Adversarial integration and live release acceptance",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "PRC-004",
+        "PRC-005"
+      ],
+      "externalDependencies": [],
+      "externalPrerequisites": [],
+      "scope": [
+        "Adversarial integration and live release acceptance"
+      ],
+      "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
+      "implementationStatus": "planned"
+    }
+  ],
+  "pullRequests": []
+}
