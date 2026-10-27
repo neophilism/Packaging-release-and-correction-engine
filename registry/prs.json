@@ -4,7 +4,7 @@
   "roadmapVersion": 1,
   "planVerified": true,
   "plannedPrCount": 6,
-  "observedAt": "2026-10-27T16:52:33Z",
+  "observedAt": "2026-10-27T16:53:40Z",
   "units": [
     {
       "id": "PRC-001",
@@ -43,7 +43,7 @@
         "Owner authorization and version-bound release checks"
       ],
       "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
-      "implementationStatus": "Domain foundation merged; PR2 adds private durable control and exact current-decision checks. Integrated live acceptance remains separate. PR3 rejects resolver results after a monotonic deadline through callback/cloning, sanitizes errors and closes signals. Seventeen local groups/typecheck/build/registry pass; installed package/current-head CI remain pending."
+      "implementationStatus": "Domain foundation merged; PR2 adds private durable control and exact current-decision checks. Integrated live acceptance remains separate. PR3 rejects resolver results after a monotonic deadline through callback/cloning, sanitizes errors and closes signals. Seventeen local groups/typecheck/build/registry pass; all eleven installed public-export persistence groups pass; final-head CI remains required."
     },
     {
       "id": "PRC-003",
