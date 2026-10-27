@@ -7,6 +7,7 @@ import type { Database } from "@accountability/evidence/database";
 import { PrivateReleaseStore } from "../src/store.ts";
 import type { CurrentInputResolver } from "../src/store.ts";
 import type { Artifact, CurrentInputs } from "../src/index.ts";
+import { DomainError } from "../src/contracts.ts";
 import type { Context } from "../src/contracts.ts";
 const owner: Context = {
   tenantId: "alpha",
@@ -436,4 +437,91 @@ test("blocked resolver cannot return a prepared private export or commit an expo
     { code: "decisions_timeout" },
   );
   assert.equal((await f.store.load(owner)).revision, ready.revision);
+});
+
+test("late asynchronous resolver results cannot resume a timed-out approval", async (t) => {
+  const f = await setup(t);
+  await f.store.execute(
+    researcher,
+    1,
+    { type: "propose", input: proposed },
+    "proposal",
+  );
+  let finish!: (v: CurrentInputs) => void, seen: AbortSignal | undefined;
+  const late = new PrivateReleaseStore(
+    f.db,
+    { ...policy, resolverTimeoutMs: 10 },
+    {
+      read: async (_c, _a, _p, signal) => {
+        seen = signal;
+        return new Promise((r) => {
+          finish = r;
+        });
+      },
+    },
+  );
+  await assert.rejects(
+    late.execute(
+      owner,
+      2,
+      {
+        type: "approve",
+        manifestId: "package",
+        expiresAt: "2026-01-01T00:10:00Z",
+      },
+      "late",
+    ),
+    { code: "decisions_timeout" },
+  );
+  assert.equal(seen?.aborted, true);
+  finish(allowedInputs());
+  await new Promise((r) => setImmediate(r));
+  assert.equal((await f.store.load(owner)).revision, 2);
+  await scoped(f.db, owner, async (tx) =>
+    assert.ok(verifyAudit(await tx.audits())),
+  );
+});
+test("resolver callback and cloning failures are sanitized and every signal closes including success", async (t) => {
+  const f = await setup(t);
+  await f.store.execute(
+    researcher,
+    1,
+    { type: "propose", input: proposed },
+    "proposal",
+  );
+  const seen: AbortSignal[] = [];
+  for (const mode of ["exception", "clone-failure", "success"]) {
+    const store = new PrivateReleaseStore(f.db, policy, {
+      read: async (_c, _a, _p, signal) => {
+        seen.push(signal);
+        if (mode === "exception")
+          throw new DomainError(
+            "decisions_timeout",
+            "secret fixture credential",
+          );
+        if (mode === "clone-failure")
+          return { ...allowedInputs(), bad: () => "secret fixture credential" };
+        return allowedInputs();
+      },
+    });
+    const result = store.execute(
+      owner,
+      2,
+      {
+        type: "approve",
+        manifestId: "package",
+        expiresAt: "2026-01-01T00:10:00Z",
+      },
+      mode,
+    );
+    if (mode === "success") assert.equal((await result).revision, 3);
+    else
+      await assert.rejects(result, (e) => {
+        assert.equal((e as { code: string }).code, "decisions_unavailable");
+        assert.equal(String(e).includes("secret"), false);
+        return true;
+      });
+    assert.equal(seen.at(-1)?.aborted, true);
+  }
+  assert.equal((await f.store.load(owner)).revision, 3);
 });
