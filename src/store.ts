@@ -97,25 +97,43 @@ export class PrivateReleaseStore {
     const manifest = s.manifests.filter((m) => m.id === id).at(-1);
     invariant(manifest, "not_found", "Manifest not found");
     const controller = new AbortController();
+    const timeoutMs = this.#policy.resolverTimeoutMs ?? 5000;
+    const deadline = performance.now() + timeoutMs;
+    const withinDeadline = () => {
+      if (controller.signal.aborted || performance.now() >= deadline) {
+        controller.abort();
+        throw new DomainError(
+          "decisions_timeout",
+          "Current decision lookup timed out",
+        );
+      }
+    };
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       return await Promise.race([
-        Promise.resolve()
-          .then(() =>
-            this.#resolve(
-              structuredClone(c),
-              structuredClone(manifest.artifacts),
-              s.policy.revision,
-              controller.signal,
-            ),
-          )
-          .then((value) => structuredClone(value))
-          .catch(() => {
+        Promise.resolve().then(async () => {
+          withinDeadline();
+          let value: CurrentInputs;
+          try {
+            value = structuredClone(
+              await this.#resolve(
+                structuredClone(c),
+                structuredClone(manifest.artifacts),
+                s.policy.revision,
+                controller.signal,
+              ),
+            );
+          } catch {
+            withinDeadline();
             throw new DomainError(
               "decisions_unavailable",
               "Current decision lookup could not complete",
             );
-          }),
+          }
+          // Delayed timers cannot make late callbacks or cloning work timely.
+          withinDeadline();
+          return value;
+        }),
         new Promise<CurrentInputs>((_, reject) => {
           timer = setTimeout(() => {
             controller.abort();
@@ -125,11 +143,12 @@ export class PrivateReleaseStore {
                 "Current decision lookup timed out",
               ),
             );
-          }, this.#policy.resolverTimeoutMs ?? 5000);
+          }, timeoutMs);
         }),
       ]);
     } finally {
       if (timer) clearTimeout(timer);
+      controller.abort();
     }
   }
   async create(context: Context, commandId: string): Promise<ReleaseSnapshot> {

@@ -1,0 +1,21 @@
+{
+  "stage": "local",
+  "testsPassed": 17,
+  "newRestrictedMigrationGroups": 4,
+  "database": "Actual canonical pinned SDK migration under restricted PGlite LOGIN",
+  "regression": "Blocked resolver approval and export tests fail on previous source and pass with monotonic gates",
+  "installedPackage": "All eleven persistence groups pass through installed compiled public exports",
+  "sourceHashes": {
+    "src/contracts.ts": "d86141cb7546a723f837a298e4ea6fef62692918f78f5aab2d72d6639987fcc5",
+    "src/index.ts": "0424e122de0d211475a4b89c78fe2d63e9803a23e1887f0baf1157df99ad9100",
+    "src/store.ts": "1d86944c7c89dd2ef8ef5c3a8583c8053b1f3a9bb2320707d65519c8c4c8c125"
+  },
+  "finalHeadCi": "required_before_merge",
+  "independentHumanAudit": "not_performed_owner_allows_ai_review",
+  "liveUpstreamAndDeploymentAcceptance": "not_performed",
+  "limits": [
+    "Deadline cannot preempt blocked JavaScript or undo callback side effects.",
+    "No distributed policy fencing or database transaction deadline introduced.",
+    "Publication remains disabled; no real provider/input import/network calls."
+  ]
+}

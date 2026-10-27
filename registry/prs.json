@@ -4,7 +4,7 @@
   "roadmapVersion": 1,
   "planVerified": true,
   "plannedPrCount": 6,
-  "observedAt": "2026-10-26T20:25:00Z",
+  "observedAt": "2026-10-27T16:53:40Z",
   "units": [
     {
       "id": "PRC-001",
@@ -31,7 +31,8 @@
       "prs": [],
       "contributingPrs": [
         1,
-        2
+        2,
+        3
       ],
       "dependsOn": [
         "PRC-001"
@@ -42,7 +43,7 @@
         "Owner authorization and version-bound release checks"
       ],
       "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
-      "implementationStatus": "Domain foundation merged; PR2 adds private durable control and exact current-decision checks. Integrated live acceptance remains separate."
+      "implementationStatus": "Domain foundation merged; PR2 adds private durable control and exact current-decision checks. Integrated live acceptance remains separate. PR3 rejects resolver results after a monotonic deadline through callback/cloning, sanitizes errors and closes signals. Seventeen local groups/typecheck/build/registry pass; all eleven installed public-export persistence groups pass; final-head CI remains required."
     },
     {
       "id": "PRC-003",
@@ -88,7 +89,11 @@
       "title": "Private export adapters and accessibility review",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [],
+      "contributingPrs": [
+        1,
+        2,
+        3
+      ],
       "dependsOn": [
         "PRC-003"
       ],
@@ -98,7 +103,7 @@
         "Private export adapters and accessibility review"
       ],
       "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
-      "implementationStatus": "planned"
+      "implementationStatus": "Partial: PR1/2 supply private metadata/source-companion exports; PR3 hardens resolver deadlines before export. Binary rendering/storage, accessibility review and live acceptance remain pending."
     },
     {
       "id": "PRC-006",
