@@ -377,3 +377,63 @@ test("caller mutation and lost acknowledgement preserve exact durable proposal",
     loaded,
   );
 });
+
+const allowedInputs = (): CurrentInputs => ({
+  artifacts: [artifact],
+  rightsAllowed: true,
+  consentAllowed: true,
+  editorialApproved: true,
+  policyRevision: 1,
+});
+test("blocked resolver cannot approve after its monotonic deadline even if the timer cannot run", async (t) => {
+  const f = await setup(t);
+  await f.store.execute(
+    researcher,
+    1,
+    { type: "propose", input: proposed },
+    "proposal",
+  );
+  const late = new PrivateReleaseStore(
+    f.db,
+    { ...policy, resolverTimeoutMs: 10 },
+    {
+      read: async () => {
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 30);
+        return allowedInputs();
+      },
+    },
+  );
+  await assert.rejects(
+    late.execute(
+      owner,
+      2,
+      {
+        type: "approve",
+        manifestId: "package",
+        expiresAt: "2026-01-01T00:10:00Z",
+      },
+      "late-approval",
+    ),
+    { code: "decisions_timeout" },
+  );
+  assert.equal((await f.store.load(owner)).revision, 2);
+});
+test("blocked resolver cannot return a prepared private export or commit an export revision after deadline", async (t) => {
+  const f = await setup(t),
+    ready = await approved(f.store);
+  const late = new PrivateReleaseStore(
+    f.db,
+    { ...policy, resolverTimeoutMs: 10 },
+    {
+      read: async () => {
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 30);
+        return allowedInputs();
+      },
+    },
+  );
+  await assert.rejects(
+    late.exportPrivate(researcher, ready.revision, "package"),
+    { code: "decisions_timeout" },
+  );
+  assert.equal((await f.store.load(owner)).revision, ready.revision);
+});
