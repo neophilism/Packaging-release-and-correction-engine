@@ -1,0 +1,27 @@
+{
+  "ordinaryLocal": 29,
+  "newRestrictedMigrationGroups": 6,
+  "installedCompiledStoreGroups": 18,
+  "installedCompiledStoreJS": "byte-matched build",
+  "initialCi": {
+    "source": "e7c0f5b34b5dcf2e8de8d9b3224c484c1c6a55a7",
+    "run": 40767322176,
+    "job": 123094858969,
+    "ordinary": 25,
+    "logsInspected": true
+  },
+  "review": "SDK lock/render-before-write/audit fields/rollback/unknown acknowledgement/source examined; final-head checks/merge required",
+  "remaining": [
+    "Final-head checks/expected-head merge",
+    "Host current Identity/roles/configuration/purpose/time and SQL/driver limits",
+    "Real upstream decisions/expiry fencing",
+    "Artifact-content storage/transport",
+    "Independent network-session/browser/AT/accessibility/deployment acceptance"
+  ],
+  "sourceSha256": {
+    "src/store.ts": "11c15983395ba036e8d9a574d9c3b1e36b1aa6fa112263b5cceb346fc3e72b4e",
+    "src/private-html.ts": "9c0c363ce91029a322dad4943036da73dad92a80712420b9d00bc4faac03c96e",
+    "tests/store.test.ts": "c8f58903c8104f2c541fcced85a68c7666ea5e22a28ee8d335e26f0b18b66aed",
+    "src/contracts.ts": "d86141cb7546a723f837a298e4ea6fef62692918f78f5aab2d72d6639987fcc5"
+  }
+}
