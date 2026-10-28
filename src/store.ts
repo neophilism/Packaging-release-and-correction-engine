@@ -8,6 +8,7 @@ import {
   DomainError,
   invariant,
   requireScope,
+  validTime,
 } from "./contracts.ts";
 import type { Context, Json, Scope } from "./contracts.ts";
 import {
@@ -38,6 +39,10 @@ export type CurrentInputResolver = {
     signal: AbortSignal,
   ): Promise<CurrentInputs>;
 };
+export type HtmlPreparationOptions = Readonly<{
+  signal?: AbortSignal;
+  timeoutMs?: number;
+}>;
 export type ReleaseCommand =
   | { type: "propose"; input: Parameters<typeof propose>[2] }
   | { type: "approve"; manifestId: string; expiresAt: string }
@@ -284,8 +289,73 @@ export class PrivateReleaseStore {
     expectedRevision: number,
     manifestId: string,
   ): Promise<{ revision: number; document: PrivateMetadataHtml }> {
-    const c = structuredClone(context);
+    return this.#prepareHtml(context, expectedRevision, manifestId);
+  }
+  /** Trusted live clock after the owning lock and before publishing a preparation edition. */
+  async exportPrivateHtmlCurrent(
+    context: Context,
+    expectedRevision: number,
+    manifestId: string,
+    clock: () => string,
+    options: HtmlPreparationOptions = {},
+  ): Promise<{ revision: number; document: PrivateMetadataHtml }> {
+    invariant(
+      typeof clock === "function",
+      "invalid_clock",
+      "Trusted clock required",
+    );
+    const timeout = options.timeoutMs ?? 10000;
+    invariant(
+      Number.isSafeInteger(timeout) && timeout >= 10 && timeout <= 30000,
+      "invalid_timeout",
+      "Preparation timeout must be 10-30000 milliseconds",
+    );
+    const deadline = performance.now() + timeout,
+      signal = options.signal;
+    const gate = () =>
+      invariant(
+        !signal?.aborted && performance.now() < deadline,
+        "preparation_interrupted",
+        "Preparation interrupted",
+      );
+    return this.#prepareHtml(context, expectedRevision, manifestId, {
+      clock,
+      gate,
+    });
+  }
+  async #prepareHtml(
+    context: Context,
+    expectedRevision: number,
+    manifestId: string,
+    live?: { clock: () => string; gate: () => void },
+  ): Promise<{ revision: number; document: PrivateMetadataHtml }> {
+    let c = structuredClone(context);
     this.#guard(c);
+    live?.gate();
+    let observed = Date.parse(c.now);
+    const refresh = () => {
+      if (!live) return;
+      live.gate();
+      try {
+        const now = live.clock();
+        invariant(
+          typeof now === "string" && now.length <= 64,
+          "invalid_clock",
+          "Trusted time required",
+        );
+        const time = validTime(now);
+        invariant(
+          Number.isFinite(observed) && time >= observed,
+          "invalid_clock",
+          "Clock regressed",
+        );
+        c = { ...c, now };
+        observed = time;
+      } catch {
+        throw new DomainError("invalid_clock", "Trusted clock unavailable");
+      }
+      live.gate();
+    };
     return scoped(this.#db, c, async (tx) => {
       await tx.audit(
         "private-release.html_export.checked",
@@ -297,10 +367,15 @@ export class PrivateReleaseStore {
         "revision_conflict",
         "Release control revision changed",
       );
+      refresh();
       const current = await this.#current(c, old.state, manifestId);
+      refresh();
       const document = renderPrivateMetadataHtml(
         preparePrivateExport(c, old.state, manifestId, current),
       );
+      refresh();
+      // Recheck approval expiry after rendering, using the same exact current-input capture.
+      if (live) preparePrivateExport(c, old.state, manifestId, current);
       // Rendering/bounds failures occur before any preparation revision is written.
       const row = await tx.put(
         "release-control",

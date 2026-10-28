@@ -19,6 +19,10 @@
     "./private-html": {
       "types": "./dist/private-html.d.ts",
       "default": "./dist/private-html.js"
+    },
+    "./identity-private-html-http": {
+      "types": "./dist/identity-private-html-http.d.ts",
+      "default": "./dist/identity-private-html-http.js"
     }
   },
   "engines": {
@@ -32,9 +36,9 @@
     "prepare": "npm run build"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.12",
     "@types/node": "26.6.5",
-    "typescript": "7.0.2",
-    "@electric-sql/pglite": "0.5.12"
+    "typescript": "7.0.2"
   },
   "files": [
     "dist",
@@ -42,6 +46,7 @@
     "docs"
   ],
   "dependencies": {
-    "@accountability/evidence": "git+https://github.com/neophilism/Evidence-Storage-and-Provenance-Engine.git#dce7105a70b42d77afe4cd48d34723331447037c"
+    "@accountability/evidence": "git+https://github.com/neophilism/Evidence-Storage-and-Provenance-Engine.git#dce7105a70b42d77afe4cd48d34723331447037c",
+    "@accountability/identity-policy": "git+https://github.com/neophilism/Identity-Authorization-and-Policy-Engine.git#43bcccfba577114f51954f868906280ed7b7ba56"
   }
 }
