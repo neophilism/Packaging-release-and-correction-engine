@@ -25,7 +25,12 @@
     "conclusion": "success",
     "logsInspected": true
   },
-  "installed": "pending",
+  "installed": {
+    "ordinaryTests": 40,
+    "newRestrictedMigrationFetchGroups": 11,
+    "compiledStoreAndHttpJsByteMatch": true,
+    "firstHarnessImportRewriteCorrectedWithoutSourceChange": true
+  },
   "finalHeadCi": "required",
   "qualificationLimits": [
     "Embedded PGlite is not independent network-session contention",
@@ -34,5 +39,13 @@
     "Preparation history is not byte storage/delivery/download proof",
     "No real listening TLS, browser, AT, accessibility, upstream service or deployed acceptance",
     "No sends/publication/payment/provider/paid infrastructure"
-  ]
+  ],
+  "expandedCi": {
+    "source": "b43e025b60733bc6f57acf15dd9155eea1f76f80",
+    "run": 40776359057,
+    "job": 123126593834,
+    "ordinaryTests": 40,
+    "conclusion": "success",
+    "logsInspected": true
+  }
 }
