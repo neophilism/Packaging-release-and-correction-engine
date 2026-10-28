@@ -544,3 +544,27 @@ test("HTML review consumes an actual fresh restricted-database export and later 
  assert.ok(rendered.bytes.byteLength>0);
  await scoped(f.db,owner,async tx=>assert.ok(verifyAudit(await tx.audits())));
 });
+
+test("durable HTML preparation binds actual bytes hash length profile and release edition in owning audit",async t=>{
+ const f=await setup(t),ready=await approved(f.store),before=await f.store.load(researcher);
+ const result=await f.store.exportPrivateHtml(researcher,ready.revision,"package");
+ const {createHash}=await import("node:crypto");
+ assert.equal(result.revision,ready.revision+1);
+ assert.equal(result.document.sha256,createHash("sha256").update(result.document.bytes).digest("hex"));
+ const after=await f.store.load(researcher);assert.deepEqual(after.state,before.state);
+ await scoped(f.db,owner,async tx=>{
+  const rows=(await tx.audits()).filter(a=>a.type==="private-release.html_prepared");assert.equal(rows.length,1);
+  assert.deepEqual(rows[0]!.payload,{manifestId:"package",revision:result.revision,packageHash:result.document.packageHash,
+    htmlSha256:result.document.sha256,byteLength:result.document.bytes.byteLength,mediaType:result.document.mediaType,profile:"private-metadata-html-v1"});
+  assert.ok(verifyAudit(await tx.audits()));
+ });
+});
+test("durable HTML rejects stale editions current consent denial and unauthorized scopes before preparation",async t=>{
+ const f=await setup(t),ready=await approved(f.store);
+ for(const c of [{...researcher,projectId:"other"},{...researcher,actor:{...researcher.actor,roles:[]}}])
+  await assert.rejects(f.store.exportPrivateHtml(c,ready.revision,"package"));
+ await assert.rejects(f.store.exportPrivateHtml(researcher,ready.revision-1,"package"),{code:"revision_conflict"});
+ f.setCurrent({consentAllowed:false});await assert.rejects(f.store.exportPrivateHtml(researcher,ready.revision,"package"));
+ assert.equal((await f.store.load(researcher)).revision,ready.revision);
+ await scoped(f.db,owner,async tx=>assert.equal((await tx.audits()).filter(a=>a.type==="private-release.html_prepared").length,0));
+});
