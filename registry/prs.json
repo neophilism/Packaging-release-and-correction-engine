@@ -4,7 +4,7 @@
   "roadmapVersion": 1,
   "planVerified": true,
   "plannedPrCount": 6,
-  "observedAt": "2026-10-27T16:53:40Z",
+  "observedAt": "2026-10-28T19:49:38Z",
   "units": [
     {
       "id": "PRC-001",
@@ -103,7 +103,7 @@
         "Private export adapters and accessibility review"
       ],
       "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
-      "implementationStatus": "Partial: PR1/2 supply private metadata/source-companion exports; PR3 hardens resolver deadlines before export. Binary rendering/storage, accessibility review and live acceptance remain pending."
+      "implementationStatus": "Partial: PR1/2 supply private metadata/source-companion exports; PR3 hardens resolver deadlines before export. Binary rendering/storage, accessibility review and live acceptance remain pending. Incomplete private HTML metadata renderer: bounded exact prepared profile/manifest/source-companion checks, escaped literal metadata and detached UTF8 bytes with independent byte hash. Three new domain-prepared synthetic groups/typecheck pass. Renderer is NOT authentication/current permission verification; host must use accepted fresh private export and access controls. Full/expanded/installed/CI/browser/accessibility/storage qualification pending. See PRIVATE_HTML.md."
     },
     {
       "id": "PRC-006",
