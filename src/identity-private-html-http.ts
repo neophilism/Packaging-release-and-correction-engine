@@ -2,7 +2,13 @@ import { timingSafeEqual } from "node:crypto";
 import type { MembershipRegistry } from "@accountability/identity-policy/membership";
 import { createMembershipSessionAuthentication } from "@accountability/identity-policy/membership-session";
 import type { HumanSessionProvider } from "@accountability/identity-policy/membership-session";
-import { DomainError, invariant, nonempty, requireScope } from "./contracts.ts";
+import {
+  DomainError,
+  digest,
+  invariant,
+  nonempty,
+  requireScope,
+} from "./contracts.ts";
 import type { Scope } from "./contracts.ts";
 import type { PrivateReleaseStore } from "./store.ts";
 
@@ -156,6 +162,21 @@ async function jsonBody(request: Request, timeoutMs: number): Promise<unknown> {
   }
 }
 
+/** Canonical scope-local Identity resource binding for private metadata HTML manifests. */
+export function privateHtmlResourceId(manifestId: string): string {
+  nonempty(manifestId, "Manifest", 128);
+  return digest({ kind: "packaging-private-metadata-html-v1", manifestId });
+}
+/** Explicit resource-aware variant; missing Identity policy fails closed. */
+export function createResourcePrivateHtmlHandler(
+  store: PrivateReleaseStore,
+  membership: MembershipRegistry,
+  provider: HumanSessionProvider,
+  configuration: IdentityPrivateHtmlPolicy,
+  clock: () => string,
+): (request: Request) => Promise<Response> {
+  return createHandler(store, membership, provider, configuration, clock, true);
+}
 /** Private human-owner metadata download. Opens no server and authenticates no login itself. */
 export function createIdentityPrivateHtmlHandler(
   store: PrivateReleaseStore,
@@ -164,8 +185,28 @@ export function createIdentityPrivateHtmlHandler(
   configuration: IdentityPrivateHtmlPolicy,
   clock: () => string,
 ): (request: Request) => Promise<Response> {
+  return createHandler(
+    store,
+    membership,
+    provider,
+    configuration,
+    clock,
+    false,
+  );
+}
+function createHandler(
+  store: PrivateReleaseStore,
+  membership: MembershipRegistry,
+  provider: HumanSessionProvider,
+  configuration: IdentityPrivateHtmlPolicy,
+  clock: () => string,
+  resourceRestricted: boolean,
+): (request: Request) => Promise<Response> {
   const policy = structuredClone(configuration),
-    prepare = store.exportPrivateHtmlCurrent.bind(store);
+    prepare = store.exportPrivateHtmlCurrent.bind(store),
+    resolveResource = resourceRestricted
+      ? membership.resolveResource.bind(membership)
+      : null;
   invariant(
     Array.isArray(policy.ownerIds) &&
       policy.ownerIds.length > 0 &&
@@ -306,8 +347,39 @@ export function createIdentityPrivateHtmlHandler(
         "csrf_denied",
         "Session CSRF required",
       );
+      let preparationContext = identity.context;
+      if (resolveResource) {
+        const deadline =
+          performance.now() + (policy.authenticationTimeoutMs ?? 5000);
+        try {
+          // Owning Identity SQL is awaited, never raced or abandoned on cancellation.
+          const observed = await resolveResource(
+            identity.context,
+            privateHtmlResourceId(action!.manifestId),
+            "read",
+          );
+          preparationContext = structuredClone(observed.context);
+          requireScope(preparationContext, policy);
+          invariant(
+            !request.signal.aborted &&
+              performance.now() < deadline &&
+              preparationContext.actor.id === identity.context.actor.id &&
+              preparationContext.actor.kind === "human" &&
+              preparationContext.actor.roles.includes("owner") &&
+              policy.ownerIds.includes(preparationContext.actor.id) &&
+              preparationContext.purpose === policy.purpose,
+            "resource_unavailable",
+            "Current resource authority required",
+          );
+        } catch {
+          throw new DomainError(
+            "resource_unavailable",
+            "Resource authority unavailable",
+          );
+        }
+      }
       const result = await prepare(
-        identity.context,
+        preparationContext,
         action!.expectedRevision,
         action!.manifestId,
         clock,
