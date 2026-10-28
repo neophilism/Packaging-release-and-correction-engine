@@ -204,3 +204,194 @@ test("wrong manifest/purpose/action restrictions and body-supplied resource IDs 
   );
   assert.equal((await f.store.load(owner)).revision, 3);
 });
+
+test("demotion between session and resource read cannot use viewer read permission for owner preparation", async (t) => {
+  const f = await fixture(t);
+  await f.membership.setResourcePolicy(owner, 0, restriction(), "allow");
+  const original = f.membership.resolveResource.bind(f.membership);
+  f.membership.resolveResource = async (...args) => {
+    await f.demote();
+    return original(...args);
+  };
+  const handler = createResourcePrivateHtmlHandler(
+    f.store,
+    f.membership,
+    f.provider,
+    configuration,
+    () => owner.now,
+  );
+  const response = await handler(request());
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), { error: "preparation_unknown" });
+  assert.equal((await f.store.load(owner)).revision, 3);
+});
+
+test("CSRF and exact field denial precede resource lookup; captured resolver receiver cannot be replaced", async (t) => {
+  const f = await fixture(t);
+  await f.membership.setResourcePolicy(owner, 0, restriction(), "allow");
+  let calls = 0;
+  const original = f.membership.resolveResource.bind(f.membership);
+  f.membership.resolveResource = async (...args) => {
+    calls++;
+    return original(...args);
+  };
+  const handler = createResourcePrivateHtmlHandler(
+    f.store,
+    f.membership,
+    f.provider,
+    configuration,
+    () => owner.now,
+  );
+  f.membership.resolveResource = async () => {
+    throw Error("replaced resolver");
+  };
+  assert.equal(
+    (
+      await handler(
+        request(command, undefined, { "x-csrf-token": "x".repeat(40) }),
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (await handler(request({ ...command, purpose: "forged" }))).status,
+    400,
+  );
+  assert.equal(calls, 0);
+  assert.equal((await handler(request())).status, 200);
+  assert.equal(calls, 1);
+});
+
+test("late or cancelled actual resource SQL is awaited then fenced before Packaging write", async (t) => {
+  const f = await fixture(t);
+  await f.membership.setResourcePolicy(owner, 0, restriction(), "allow");
+  for (const cancel of [false, true]) {
+    const controller = new AbortController();
+    let observed = false;
+    const membership = new MembershipRegistry(
+      {
+        close: async () => {},
+        transaction: (fn) =>
+          f.identityDb.transaction((q) =>
+            fn({
+              query: async <T>(sql: string, v?: unknown[]) => {
+                const value = await q.query<T>(sql, v);
+                if (
+                  sql.includes("SELECT") &&
+                  v?.includes("identity-resource-policy")
+                ) {
+                  observed = true;
+                  if (cancel) controller.abort();
+                  else {
+                    const end = performance.now() + 150;
+                    while (performance.now() < end) {}
+                  }
+                }
+                return value;
+              },
+            }),
+          ),
+      },
+      { ...owner, bootstrapOwnerIds: ["owner"] },
+      () => owner.now,
+    );
+    const handler = createResourcePrivateHtmlHandler(
+      f.store,
+      membership,
+      f.provider,
+      { ...configuration, authenticationTimeoutMs: 100 },
+      () => owner.now,
+    );
+    assert.equal(
+      (await handler(new Request(request(), { signal: controller.signal })))
+        .status,
+      503,
+    );
+    assert(observed);
+    assert.equal((await f.store.load(owner)).revision, 3);
+  }
+});
+
+test("lost actual Identity read acknowledgement never starts Packaging preparation or leaks driver diagnostics", async (t) => {
+  const f = await fixture(t);
+  await f.membership.setResourcePolicy(owner, 0, restriction(), "allow");
+  let lost = false;
+  const membership = new MembershipRegistry(
+    {
+      close: async () => {},
+      transaction: async (fn) => {
+        let read = false;
+        const result = await f.identityDb.transaction((q) =>
+          fn({
+            query: async <T>(sql: string, v?: unknown[]) => {
+              const value = await q.query<T>(sql, v);
+              if (
+                sql.includes("SELECT") &&
+                v?.includes("identity-resource-policy")
+              )
+                read = true;
+              return value;
+            },
+          }),
+        );
+        if (read) {
+          lost = true;
+          throw Error("private resource driver diagnostic");
+        }
+        return result;
+      },
+    },
+    { ...owner, bootstrapOwnerIds: ["owner"] },
+    () => owner.now,
+  );
+  const handler = createResourcePrivateHtmlHandler(
+    f.store,
+    membership,
+    f.provider,
+    configuration,
+    () => owner.now,
+  );
+  const response = await handler(request());
+  assert.equal(response.status, 503);
+  assert(lost);
+  assert.deepEqual(await response.json(), { error: "preparation_unknown" });
+  assert.equal((await f.store.load(owner)).revision, 3);
+  assert(verifyAudit(await scoped(f.identityDb, owner, (tx) => tx.audits())));
+});
+
+test("lost actual Packaging COMMIT acknowledgement preserves one preparation and stale explicit replay conflicts", async (t) => {
+  const f = await fixture(t);
+  await f.membership.setResourcePolicy(owner, 0, restriction(), "allow");
+  let lose = true;
+  const store = new PrivateReleaseStore(
+    {
+      close: async () => {},
+      transaction: async (fn) => {
+        const result = await f.db.transaction(fn);
+        if (lose) {
+          lose = false;
+          throw Error("lost commit");
+        }
+        return result;
+      },
+    },
+    releasePolicy,
+    f.resolver,
+  );
+  const handler = createResourcePrivateHtmlHandler(
+    store,
+    f.membership,
+    f.provider,
+    configuration,
+    () => owner.now,
+  );
+  assert.equal((await handler(request())).status, 503);
+  assert.equal((await f.store.load(owner)).revision, 4);
+  assert.equal((await handler(request())).status, 409);
+  assert.equal(
+    (await scoped(f.db, owner, (tx) => tx.audits())).filter(
+      (a) => a.type === "private-release.html_prepared",
+    ).length,
+    1,
+  );
+});
