@@ -15,6 +15,10 @@
     "./store": {
       "types": "./dist/store.d.ts",
       "default": "./dist/store.js"
+    },
+    "./private-html": {
+      "types": "./dist/private-html.d.ts",
+      "default": "./dist/private-html.js"
     }
   },
   "engines": {

@@ -1,0 +1,30 @@
+{
+  "ordinaryLocal": 23,
+  "newGroups": 6,
+  "newPureGroups": 5,
+  "newRestrictedMigrationGroups": 1,
+  "installedCompiledPublicExportGroups": 17,
+  "installedCompiledHtmlJS": "byte-matched build",
+  "initialCi": {
+    "source": "945d291f74f81f568232210233ca1588f8360af1",
+    "run": 40757892581,
+    "job": 123061619597,
+    "ordinary": 20,
+    "logsInspected": true
+  },
+  "review": "Escaping/fixed markup/budgets/exact bindings and formatter-only trust reviewed; final-head CI/expected-head merge required",
+  "remaining": [
+    "Final-head CI/expected-head merge",
+    "Host fresh authorization/access control/current upstream decision qualification",
+    "Artifact content packaging/storage",
+    "Real browser/assistive technology/accessibility",
+    "Production host/driver/TLS/deployment acceptance"
+  ],
+  "sourceSha256": {
+    "src/private-html.ts": "9c0c363ce91029a322dad4943036da73dad92a80712420b9d00bc4faac03c96e",
+    "tests/private-html.test.ts": "2d5d566a026a7d2fced2047b915b6a8311d913c8a2e8020e9e5ffba3edee5374",
+    "tests/store.test.ts": "cee8e3ec337c51ad06f7f4a7a3a92c8328d153a1a4f634e604839bdd1b310baf",
+    "package.json": "b6377ec04042cd30d05571a818e14cf08c5c5637cb629fe197d5c020f59fe8f0",
+    "src/contracts.ts": "d86141cb7546a723f837a298e4ea6fef62692918f78f5aab2d72d6639987fcc5"
+  }
+}
