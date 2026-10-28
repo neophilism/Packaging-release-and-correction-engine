@@ -544,3 +544,73 @@ test("HTML review consumes an actual fresh restricted-database export and later 
  assert.ok(rendered.bytes.byteLength>0);
  await scoped(f.db,owner,async tx=>assert.ok(verifyAudit(await tx.audits())));
 });
+
+test("durable HTML preparation binds actual bytes hash length profile and release edition in owning audit",async t=>{
+ const f=await setup(t),ready=await approved(f.store),before=await f.store.load(researcher);
+ const result=await f.store.exportPrivateHtml(researcher,ready.revision,"package");
+ const {createHash}=await import("node:crypto");
+ assert.equal(result.revision,ready.revision+1);
+ assert.equal(result.document.sha256,createHash("sha256").update(result.document.bytes).digest("hex"));
+ const after=await f.store.load(researcher);assert.deepEqual(after.state,before.state);
+ await scoped(f.db,owner,async tx=>{
+  const rows=(await tx.audits()).filter(a=>a.type==="private-release.html_prepared");assert.equal(rows.length,1);
+  assert.deepEqual(rows[0]!.payload,{manifestId:"package",revision:result.revision,packageHash:result.document.packageHash,
+    htmlSha256:result.document.sha256,byteLength:result.document.bytes.byteLength,mediaType:result.document.mediaType,profile:"private-metadata-html-v1"});
+  assert.ok(verifyAudit(await tx.audits()));
+ });
+});
+test("durable HTML rejects stale editions current consent denial and unauthorized scopes before preparation",async t=>{
+ const f=await setup(t),ready=await approved(f.store);
+ for(const c of [{...researcher,projectId:"other"},{...researcher,actor:{...researcher.actor,roles:[]}}])
+  await assert.rejects(f.store.exportPrivateHtml(c,ready.revision,"package"));
+ await assert.rejects(f.store.exportPrivateHtml(researcher,ready.revision-1,"package"),{code:"revision_conflict"});
+ f.setCurrent({consentAllowed:false});await assert.rejects(f.store.exportPrivateHtml(researcher,ready.revision,"package"));
+ assert.equal((await f.store.load(researcher)).revision,ready.revision);
+ await scoped(f.db,owner,async tx=>assert.equal((await tx.audits()).filter(a=>a.type==="private-release.html_prepared").length,0));
+});
+
+test("HTML preparation audit failure rolls back containing revision and all checked/prepared audits",async t=>{
+ const f=await setup(t),ready=await approved(f.store);let hit=false,fail=true;
+ const db={...f.db,transaction:<T>(fn:Parameters<typeof f.db.transaction<T>>[0])=>f.db.transaction(q=>fn({query:async <R>(sql:string,v?:unknown[])=>{
+  const r=await q.query<R>(sql,v);
+  if(fail && sql.includes("INSERT INTO public.evidence_audit") && v?.includes("private-release.html_prepared")){hit=true;fail=false;throw Error("fixture audit failure");}return r;
+ }}))};
+ const store=new PrivateReleaseStore(db,policy,f.resolver);
+ await assert.rejects(store.exportPrivateHtml(researcher,ready.revision,"package"),/fixture audit failure/);assert.equal(hit,true);
+ assert.deepEqual(await f.store.load(researcher),ready);
+ await scoped(f.db,owner,async tx=>assert.equal((await tx.audits()).filter(a=>a.type.startsWith("private-release.html_")).length,0));
+ assert.equal((await store.exportPrivateHtml(researcher,ready.revision,"package")).revision,ready.revision+1);
+});
+test("lost HTML preparation COMMIT acknowledgement preserves owning history but cannot replay old expected edition",async t=>{
+ const f=await setup(t),ready=await approved(f.store);let wrote=false,lost=false;
+ const db={...f.db,transaction:async <T>(fn:Parameters<typeof f.db.transaction<T>>[0])=>{
+  const result=await f.db.transaction(q=>fn({query:async <R>(sql:string,v?:unknown[])=>{
+   const r=await q.query<R>(sql,v);if(sql.includes("INSERT INTO public.evidence_audit")&&v?.includes("private-release.html_prepared"))wrote=true;return r;
+  }}));if(wrote&&!lost){lost=true;throw Error("lost HTML COMMIT acknowledgement");}return result;
+ }};
+ const store=new PrivateReleaseStore(db,policy,f.resolver);
+ await assert.rejects(store.exportPrivateHtml(researcher,ready.revision,"package"),/lost HTML COMMIT/);assert.equal(lost,true);
+ const fresh=new PrivateReleaseStore(f.db,policy,f.resolver),current=await fresh.load(researcher);
+ assert.equal(current.revision,ready.revision+1);assert.deepEqual(current.state,ready.state);
+ await assert.rejects(fresh.exportPrivateHtml(researcher,ready.revision,"package"),{code:"revision_conflict"});
+ await scoped(f.db,owner,async tx=>{assert.equal((await tx.audits()).filter(a=>a.type==="private-release.html_prepared").length,1);assert.ok(verifyAudit(await tx.audits()));});
+});
+test("oversized actual private metadata rendering fails before preparation revision and rolls back checked audit",async t=>{
+ const f=await setup(t),large={...artifact,sourceBindings:Array.from({length:1600},(_,i)=>binding("source-"+i))};
+ f.setCurrent({artifacts:[large]});
+ const p=await f.store.execute(researcher,1,{type:"propose",input:{...proposed,artifacts:[large]}},"large-propose");
+ const ready=await f.store.execute(owner,p.revision,{type:"approve",manifestId:"package",expiresAt:"2026-01-01T00:10:00Z"},"large-approve");
+ await assert.rejects(f.store.exportPrivateHtml(researcher,ready.revision,"package"),{code:"export_too_large"});
+ assert.deepEqual(await f.store.load(researcher),ready);
+ await scoped(f.db,owner,async tx=>assert.equal((await tx.audits()).filter(a=>a.type.startsWith("private-release.html_")).length,0));
+});
+test("HTML preparation captures caller/configuration before transaction awaits and returns detached rendered bytes",async t=>{
+ const f=await setup(t),ready=await approved(f.store),c=structuredClone(researcher),config=structuredClone(policy);
+ let release!:()=>void,enter!:()=>void;const gate=new Promise<void>(r=>release=r),entered=new Promise<void>(r=>enter=r);
+ const db={...f.db,transaction:async <T>(fn:Parameters<typeof f.db.transaction<T>>[0])=>{enter();await gate;return f.db.transaction(fn);}};
+ const store=new PrivateReleaseStore(db,config,f.resolver),pending=store.exportPrivateHtml(c,ready.revision,"package");
+ await entered;(c.actor as unknown as {roles:string[]}).roles=[];config.researcherIds.length=0;release();
+ const result=await pending;const hash=result.document.sha256;result.document.bytes.fill(0);
+ await scoped(f.db,owner,async tx=>{const a=(await tx.audits()).find(a=>a.type==="private-release.html_prepared")!;assert.equal((a.payload as {htmlSha256:string}).htmlSha256,hash);});
+ assert.deepEqual((await f.store.load(researcher)).state,ready.state);
+});

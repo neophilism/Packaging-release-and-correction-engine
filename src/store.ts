@@ -1,3 +1,5 @@
+import { renderPrivateMetadataHtml } from "./private-html.ts";
+import type { PrivateMetadataHtml } from "./private-html.ts";
 import { scoped } from "@accountability/evidence/database";
 import type { Database, UnitOfWork } from "@accountability/evidence/database";
 import {
@@ -274,6 +276,51 @@ export class PrivateReleaseStore {
         }),
       );
       return { revision: row.revision, package: output };
+    });
+  }
+  /** Fresh private preparation only; byte provenance is not a storage or delivery receipt. */
+  async exportPrivateHtml(
+    context: Context,
+    expectedRevision: number,
+    manifestId: string,
+  ): Promise<{ revision: number; document: PrivateMetadataHtml }> {
+    const c = structuredClone(context);
+    this.#guard(c);
+    return scoped(this.#db, c, async (tx) => {
+      await tx.audit(
+        "private-release.html_export.checked",
+        json({ manifestId }),
+      );
+      const old = await this.#get(tx);
+      invariant(
+        old.revision === expectedRevision,
+        "revision_conflict",
+        "Release control revision changed",
+      );
+      const current = await this.#current(c, old.state, manifestId);
+      const document = renderPrivateMetadataHtml(
+        preparePrivateExport(c, old.state, manifestId, current),
+      );
+      // Rendering/bounds failures occur before any preparation revision is written.
+      const row = await tx.put(
+        "release-control",
+        key,
+        expectedRevision,
+        old.state,
+      );
+      await tx.audit(
+        "private-release.html_prepared",
+        json({
+          manifestId,
+          revision: row.revision,
+          packageHash: document.packageHash,
+          htmlSha256: document.sha256,
+          byteLength: document.bytes.byteLength,
+          mediaType: document.mediaType,
+          profile: "private-metadata-html-v1",
+        }),
+      );
+      return { revision: row.revision, document };
     });
   }
 }

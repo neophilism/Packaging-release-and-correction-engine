@@ -4,7 +4,7 @@
   "roadmapVersion": 1,
   "planVerified": true,
   "plannedPrCount": 6,
-  "observedAt": "2026-10-28T19:52:52Z",
+  "observedAt": "2026-10-28T20:56:13Z",
   "units": [
     {
       "id": "PRC-001",
@@ -93,7 +93,8 @@
         1,
         2,
         3,
-        5
+        5,
+        6
       ],
       "dependsOn": [
         "PRC-003"
@@ -104,7 +105,7 @@
         "Private export adapters and accessibility review"
       ],
       "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
-      "implementationStatus": "Partial PR1/2 metadata/source-companion exports and PR3 resolver deadlines; PR5 candidate adds bounded self-contained escaped private metadata HTML bytes, exact manifest/companion profile and independent byte hash. Formatter ONLY: host must obtain fresh accepted authorized export/access controls, never authenticate by snapshot/hash. Five pure formatter and one actual restricted-migration current-export/consent-denial group bring local total23/typecheck/build/registry; all17 formatter/store groups also pass installed compiled exports/private-html JS byte-match. Initial source945d291f74f81f568232210233ca1588f8360af1 CI40757892581/check123061619597 passed20 tests, logs inspected. Final-head checks/reviewed expected-head merge required. No artifact-content retrieval/storage/transport/publication. Browser/AT/accessibility/real decisions/current Identity/host/driver/deployment remain unqualified. See PRIVATE_HTML.md."
+      "implementationStatus": "Partial PR1/2 metadata/source-companion exports and PR3 resolver deadlines; PR5 candidate adds bounded self-contained escaped private metadata HTML bytes, exact manifest/companion profile and independent byte hash. Formatter ONLY: host must obtain fresh accepted authorized export/access controls, never authenticate by snapshot/hash. Five pure formatter and one actual restricted-migration current-export/consent-denial group bring local total23/typecheck/build/registry; all17 formatter/store groups also pass installed compiled exports/private-html JS byte-match. Initial source945d291f74f81f568232210233ca1588f8360af1 CI40757892581/check123061619597 passed20 tests, logs inspected. Final-head checks/reviewed expected-head merge required. No artifact-content retrieval/storage/transport/publication. Browser/AT/accessibility/real decisions/current Identity/host/driver/deployment remain unqualified. See PRIVATE_HTML.md. Incomplete durable HTML preparation: current private checks/rendering before containing SQL preparation revision, atomic exact byte hash/length/profile/edition audit, no content bytes/storage/transport. Initial two restricted-migration groups/typecheck; expanded/installed/current-head CI/review pending. See DURABLE_HTML.md. PR6 candidate: private durable HTML preparation under own project lock, accepted current-input/private approval checks and renderer before containing preparation revision, atomic exact byte hash/length/profile/package hash/edition audit; domain state unchanged/no SQL content bytes/storage/transport claim. Six new actual restricted-migration groups and all29 local tests/typecheck/build/registry; all18 store groups pass installed compiled exports/store JS match. Initial sourcee7c0f5b34b5dcf2e8de8d9b3224c484c1c6a55a7 CI40767322176/check123094858969 passed25 tests, logs inspected. Final-head CI/reviewed expected-head merge pending. Context.now expiry is captured request time, NOT a new live clock or external permission fence. Lost COMMIT ack unknown, no old-edition replay. Real source/rights/consent/editorial/Identity/host/driver/TLS/storage/browser/AT/accessibility/deployment remain pending. See DURABLE_HTML.md."
     },
     {
       "id": "PRC-006",
