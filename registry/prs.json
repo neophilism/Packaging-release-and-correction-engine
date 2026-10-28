@@ -4,7 +4,7 @@
   "roadmapVersion": 1,
   "planVerified": true,
   "plannedPrCount": 6,
-  "observedAt": "2026-10-28T19:49:38Z",
+  "observedAt": "2026-10-28T19:52:52Z",
   "units": [
     {
       "id": "PRC-001",
@@ -92,7 +92,8 @@
       "contributingPrs": [
         1,
         2,
-        3
+        3,
+        5
       ],
       "dependsOn": [
         "PRC-003"
@@ -103,7 +104,7 @@
         "Private export adapters and accessibility review"
       ],
       "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
-      "implementationStatus": "Partial: PR1/2 supply private metadata/source-companion exports; PR3 hardens resolver deadlines before export. Binary rendering/storage, accessibility review and live acceptance remain pending. Incomplete private HTML metadata renderer: bounded exact prepared profile/manifest/source-companion checks, escaped literal metadata and detached UTF8 bytes with independent byte hash. Three new domain-prepared synthetic groups/typecheck pass. Renderer is NOT authentication/current permission verification; host must use accepted fresh private export and access controls. Full/expanded/installed/CI/browser/accessibility/storage qualification pending. See PRIVATE_HTML.md."
+      "implementationStatus": "Partial PR1/2 metadata/source-companion exports and PR3 resolver deadlines; PR5 candidate adds bounded self-contained escaped private metadata HTML bytes, exact manifest/companion profile and independent byte hash. Formatter ONLY: host must obtain fresh accepted authorized export/access controls, never authenticate by snapshot/hash. Five pure formatter and one actual restricted-migration current-export/consent-denial group bring local total23/typecheck/build/registry; all17 formatter/store groups also pass installed compiled exports/private-html JS byte-match. Initial source945d291f74f81f568232210233ca1588f8360af1 CI40757892581/check123061619597 passed20 tests, logs inspected. Final-head checks/reviewed expected-head merge required. No artifact-content retrieval/storage/transport/publication. Browser/AT/accessibility/real decisions/current Identity/host/driver/deployment remain unqualified. See PRIVATE_HTML.md."
     },
     {
       "id": "PRC-006",

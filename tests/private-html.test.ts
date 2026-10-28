@@ -109,3 +109,41 @@ test("changed companion digest external visibility extra fields and oversized da
   ])
     assert.throws(() => renderPrivateMetadataHtml(p as Json));
 });
+
+test("UTF8 input bytes and escaped output expansion are bounded independently", () => {
+  const p = prepared() as any;
+  assert.throws(
+    () =>
+      renderPrivateMetadataHtml({
+        ...p,
+        manifest: { ...p.manifest, reason: "雪".repeat(180000) },
+      }),
+    { code: "export_too_large" },
+  );
+  // Reason is intentionally formatter-only hostile metadata, not a domain transition.
+  const expanded = {
+    ...p,
+    manifest: { ...p.manifest, reason: "&".repeat(450000) },
+  };
+  assert.ok(Buffer.byteLength(JSON.stringify(expanded)) < 524288);
+  assert.throws(() => renderPrivateMetadataHtml(expanded), {
+    code: "export_too_large",
+  });
+});
+test("invalid JSON profiles fail without returning bytes and canonical key order does not change output", () => {
+  for (const p of [
+    null,
+    [],
+    {},
+    false,
+    { schemaVersion: 1 },
+    "private",
+  ] as Json[])
+    assert.throws(() => renderPrivateMetadataHtml(p));
+  const p = prepared() as Record<string, Json>,
+    reordered = Object.fromEntries(Object.entries(p).reverse());
+  assert.deepEqual(
+    renderPrivateMetadataHtml(p),
+    renderPrivateMetadataHtml(reordered),
+  );
+});

@@ -11,3 +11,5 @@ The library includes private metadata/source-companion exports and an opt-in sep
 Current-input resolver calls use monotonic admission/result gates through callback execution and cloning, plus a timeout timer and signal cleanup. Event-loop blocking cannot make a late result timely. This bounds result acceptance, not blocked JavaScript execution, begun database work or distributed policy changes.
 
 A bounded private HTML metadata formatter now renders the existing prepared export as escaped self-contained review bytes; it is not an authenticated export service or artifact-content packaging/storage. Host fresh authorization/access controls and real-browser/accessibility acceptance remain separate. See PRIVATE_HTML.md.
+
+Private metadata HTML qualification: all23 ordinary local tests/typecheck/build/registry and17 installed compiled public-export formatter/store groups pass, including six new groups and actual restricted-migration fresh export/current-consent denial. Initial CI40757892581 passed20 tests. Final-head CI and real-browser/accessibility/current-provider/deployment qualification remain separate; hashes and snapshots are not authentication.

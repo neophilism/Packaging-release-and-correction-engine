@@ -525,3 +525,22 @@ test("resolver callback and cloning failures are sanitized and every signal clos
   }
   assert.equal((await f.store.load(owner)).revision, 3);
 });
+
+test("HTML review consumes an actual fresh restricted-database export and later consent denial prevents new rendering",async t=>{
+ const f=await setup(t),ready=await approved(f.store);
+ const {renderPrivateMetadataHtml}=await import("../src/private-html.ts");
+ const output=await f.store.exportPrivate(researcher,ready.revision,"package");
+ const rendered=renderPrivateMetadataHtml(output.package);
+ assert.equal(rendered.visibility,"private");assert.ok(rendered.bytes.byteLength>0);
+ assert.match(new TextDecoder().decode(rendered.bytes),/Fictional short/);
+ const after=await f.store.load(researcher);assert.equal(after.revision,output.revision);
+ f.setCurrent({consentAllowed:false});let formatted=false;
+ await assert.rejects((async()=>{
+   const next=await f.store.exportPrivate(researcher,after.revision,"package");
+   formatted=true;renderPrivateMetadataHtml(next.package);
+ })());
+ assert.equal(formatted,false);assert.deepEqual(await f.store.load(researcher),after);
+ // Already downloaded bytes remain a historical snapshot, never a current permit.
+ assert.ok(rendered.bytes.byteLength>0);
+ await scoped(f.db,owner,async tx=>assert.ok(verifyAudit(await tx.audits())));
+});
