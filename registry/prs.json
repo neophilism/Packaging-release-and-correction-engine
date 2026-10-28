@@ -4,7 +4,7 @@
   "roadmapVersion": 1,
   "planVerified": true,
   "plannedPrCount": 6,
-  "observedAt": "2026-10-28T20:56:13Z",
+  "observedAt": "2026-10-28T22:01:01Z",
   "units": [
     {
       "id": "PRC-001",
@@ -94,7 +94,8 @@
         2,
         3,
         5,
-        6
+        6,
+        7
       ],
       "dependsOn": [
         "PRC-003"
@@ -105,14 +106,16 @@
         "Private export adapters and accessibility review"
       ],
       "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
-      "implementationStatus": "Partial PR1/2 metadata/source-companion exports and PR3 resolver deadlines; PR5 candidate adds bounded self-contained escaped private metadata HTML bytes, exact manifest/companion profile and independent byte hash. Formatter ONLY: host must obtain fresh accepted authorized export/access controls, never authenticate by snapshot/hash. Five pure formatter and one actual restricted-migration current-export/consent-denial group bring local total23/typecheck/build/registry; all17 formatter/store groups also pass installed compiled exports/private-html JS byte-match. Initial source945d291f74f81f568232210233ca1588f8360af1 CI40757892581/check123061619597 passed20 tests, logs inspected. Final-head checks/reviewed expected-head merge required. No artifact-content retrieval/storage/transport/publication. Browser/AT/accessibility/real decisions/current Identity/host/driver/deployment remain unqualified. See PRIVATE_HTML.md. Incomplete durable HTML preparation: current private checks/rendering before containing SQL preparation revision, atomic exact byte hash/length/profile/edition audit, no content bytes/storage/transport. Initial two restricted-migration groups/typecheck; expanded/installed/current-head CI/review pending. See DURABLE_HTML.md. PR6 candidate: private durable HTML preparation under own project lock, accepted current-input/private approval checks and renderer before containing preparation revision, atomic exact byte hash/length/profile/package hash/edition audit; domain state unchanged/no SQL content bytes/storage/transport claim. Six new actual restricted-migration groups and all29 local tests/typecheck/build/registry; all18 store groups pass installed compiled exports/store JS match. Initial sourcee7c0f5b34b5dcf2e8de8d9b3224c484c1c6a55a7 CI40767322176/check123094858969 passed25 tests, logs inspected. Final-head CI/reviewed expected-head merge pending. Context.now expiry is captured request time, NOT a new live clock or external permission fence. Lost COMMIT ack unknown, no old-edition replay. Real source/rights/consent/editorial/Identity/host/driver/TLS/storage/browser/AT/accessibility/deployment remain pending. See DURABLE_HTML.md."
+      "implementationStatus": "Partial accepted PR1/2 private metadata/source-companion control, PR3 bounded current-input resolver, PR5 metadata HTML formatter (merged054721b49215c61c4790f27ad2f750df8d38bbaa/finalCI40758365419 success), PR6 durable exact-byte preparation provenance (merged78b640489c65816f86139aa499140611432e2968/finalCI40767751243 success). PR7 candidate adds current stored Identity human-owner private session/metadata HTML attachment preparation through the pinned accepted session SDK, with independent Packaging fixed owner/scope/purpose/current decision checks and separate owning databases. New exportPrivateHtmlCurrent samples trusted synchronous time after owning lock/read, current resolver and rendering, denying regressed/bad clocks/cancellation/late acceptance before preparation write. Strict exact HTTPS/Origin/Fetch Metadata/session CSRF/16KiB/4096chunk/monotonic body admission precedes fresh Identity. All40 ordinary tests/typecheck/build/registry and all40 installed compiled public-export groups pass; eleven new separate restricted canonical-migration/native-Fetch groups, compiled store/HTTP JS byte-match. Expanded sourceb43e025b60733bc6f57acf15dd9155eea1f76f80 CI40776359057/check123126593834 passed40, logs inspected. Final-head CI/reviewed expected-head merge remains required. Lost COMMIT acknowledgement/post-commit cancellation is unknown, never delivery/rollback/new retry authority. Legacy APIs unchanged. No atomic cross-service revocation/expiry fence, source content, object storage, approval/enablement/dispatch/publication or payments. Host login/session-CSRF/current policy/clock/TLS/driver/ingress/concurrency, independent SQL-network, real upstream/browser/AT/accessibility/deployed qualification remain pending. See IDENTITY_PRIVATE_HTML_HTTP.md."
     },
     {
       "id": "PRC-006",
       "title": "Adversarial integration and live release acceptance",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [],
+      "contributingPrs": [
+        7
+      ],
       "dependsOn": [
         "PRC-004",
         "PRC-005"
@@ -123,7 +126,7 @@
         "Adversarial integration and live release acceptance"
       ],
       "acceptanceCriteria": "Verify required behavior, rejection paths, source-bound test evidence and private defaults; live acceptance remains separate.",
-      "implementationStatus": "planned"
+      "implementationStatus": "Partial: PR7 candidate adds current stored Identity human-owner private session/metadata HTML attachment preparation through the pinned accepted session SDK, with independent Packaging fixed owner/scope/purpose/current decision checks and separate owning databases. New exportPrivateHtmlCurrent samples trusted synchronous time after owning lock/read, current resolver and rendering, denying regressed/bad clocks/cancellation/late acceptance before preparation write. Strict exact HTTPS/Origin/Fetch Metadata/session CSRF/16KiB/4096chunk/monotonic body admission precedes fresh Identity. All40 ordinary tests/typecheck/build/registry and all40 installed compiled public-export groups pass; eleven new separate restricted canonical-migration/native-Fetch groups, compiled store/HTTP JS byte-match. Expanded sourceb43e025b60733bc6f57acf15dd9155eea1f76f80 CI40776359057/check123126593834 passed40, logs inspected. Final-head CI/reviewed expected-head merge remains required. Lost COMMIT acknowledgement/post-commit cancellation is unknown, never delivery/rollback/new retry authority. Legacy APIs unchanged. No atomic cross-service revocation/expiry fence, source content, object storage, approval/enablement/dispatch/publication or payments. Host login/session-CSRF/current policy/clock/TLS/driver/ingress/concurrency, independent SQL-network, real upstream/browser/AT/accessibility/deployed qualification remain pending. See IDENTITY_PRIVATE_HTML_HTTP.md."
     }
   ],
   "pullRequests": []

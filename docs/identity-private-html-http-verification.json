@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "pr": 7,
+  "implementation": "partial",
+  "sourceFiles": {
+    "src/store.ts": "cd4b034b3da5f7df954c84cac196628c958c8e09f64e61016cf62025d799539b",
+    "src/identity-private-html-http.ts": "bff63da20fc553020386dc6601484aa6da568cbdcdde08268435038c1b407d0c",
+    "tests/identity-private-html-http.test.ts": "d84f1f341eec632c500e9204dd30ee75862ab20aefc6ecbd9091ec02a476d940",
+    "tests/helpers/private-html.ts": "0f0e19cb84f11bf28fe4b394ed51629e0f52a3683b8abb994762db61704e41ae",
+    "package.json": "81242a883a3757cc230d5219f58227a7362180de8d7bbe3da4a92edd2c288480",
+    "package-lock.json": "8be7e1254850d0c88f83f1f3bb957d0d0543cd61c97fc20bb7bc3b082673ce7b"
+  },
+  "local": {
+    "ordinaryTests": 40,
+    "newRestrictedMigrationFetchGroups": 11,
+    "typecheck": true,
+    "build": true,
+    "registry": true
+  },
+  "initialCi": {
+    "source": "077069c1587b64497117beca9ee964969de2ed84",
+    "run": 40775948072,
+    "job": 123125156296,
+    "ordinaryTests": 33,
+    "conclusion": "success",
+    "logsInspected": true
+  },
+  "installed": {
+    "ordinaryTests": 40,
+    "newRestrictedMigrationFetchGroups": 11,
+    "compiledStoreAndHttpJsByteMatch": true,
+    "firstHarnessImportRewriteCorrectedWithoutSourceChange": true
+  },
+  "finalHeadCi": "required",
+  "qualificationLimits": [
+    "Embedded PGlite is not independent network-session contention",
+    "Trusted host login/session/CSRF/clock/current configuration and separate owning DB drivers required",
+    "Sequential Identity/current-decision observations are not distributed permission/expiry action fencing",
+    "Preparation history is not byte storage/delivery/download proof",
+    "No real listening TLS, browser, AT, accessibility, upstream service or deployed acceptance",
+    "No sends/publication/payment/provider/paid infrastructure"
+  ],
+  "expandedCi": {
+    "source": "b43e025b60733bc6f57acf15dd9155eea1f76f80",
+    "run": 40776359057,
+    "job": 123126593834,
+    "ordinaryTests": 40,
+    "conclusion": "success",
+    "logsInspected": true
+  }
+}
