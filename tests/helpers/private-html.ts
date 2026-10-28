@@ -1,13 +1,11 @@
-import test from "node:test";
+import type { TestContext } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
-import { scoped, verifyAudit } from "@accountability/evidence/database";
 import type { Database } from "@accountability/evidence/database";
 import { PrivateReleaseStore } from "../../src/store.ts";
 import type { CurrentInputResolver } from "../../src/store.ts";
 import type { Artifact, CurrentInputs } from "../../src/index.ts";
-import { DomainError } from "../../src/contracts.ts";
 import type { Context } from "../../src/contracts.ts";
 export const owner: Context = {
   tenantId: "alpha",
@@ -53,7 +51,7 @@ export const releasePolicy = {
   ownerIds: ["owner"],
   researcherIds: ["worker"],
 };
-export async function setup(t: test.TestContext) {
+export async function setup(t: TestContext) {
   const pg = new PGlite();
   await pg.exec(
     await readFile(
