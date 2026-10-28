@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "repository": "neophilism/Packaging-release-and-correction-engine",
+  "kind": "unclassified",
+  "monitoring": {
+    "mode": "inventory"
+  },
+  "budget": {
+    "monthly_usd_max": 0,
+    "allow_billable_fallback": false
+  },
+  "failover": {
+    "mode": "disabled",
+    "stateful": false,
+    "writer_fencing": false,
+    "router": "none"
+  },
+  "deployments": []
+}
