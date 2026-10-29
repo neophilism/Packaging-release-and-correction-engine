@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "pr": 8,
+  "implementation": "partial",
+  "sourceFiles": {
+    "src/identity-private-html-http.ts": "3cefd505847975a6df061c4dcda404547832f61cdebf6e2596a25e80348ef34a",
+    "tests/resource-private-html-http.test.ts": "e70bfcbe39971abaf57c25be7eb531e43f5ef2a2c7547ada8b0a595207db57f2",
+    "package.json": "443a6d40c7d7d8fa12f33c53be2f80ea8bb55273a77310cba86eb0a15c8a3389",
+    "package-lock.json": "c67ca8d47d2087565a9bb6075b5deff8a7307020fc220d7bfe1e350901c19949"
+  },
+  "local": {
+    "ordinaryTests": 48,
+    "newRestrictedMigrationFetchGroups": 8,
+    "typecheck": true,
+    "build": true,
+    "registry": true
+  },
+  "initialCi": {
+    "source": "fe7f50bc51d3402fc1c499b772b81a0d548a8823",
+    "run": 40790820131,
+    "job": 123175308136,
+    "ordinaryTests": 43,
+    "success": true,
+    "logsInspected": true
+  },
+  "installed": {
+    "ordinaryTests": 48,
+    "newRestrictedMigrationFetchGroups": 8,
+    "compiledHttpJsByteMatchesBuild": true
+  },
+  "finalHeadCi": "required",
+  "limits": [
+    "Opt-in factory; existing factory behavior preserved",
+    "Scope-local hash binds logical manifest ID across editions, not proof of identity or content",
+    "Sequential Identity and Packaging transactions are not distributed permission fencing",
+    "Begun SQL awaited; late/unknown Identity result starts no Packaging preparation",
+    "No new independent SQL-session/TLS/real identity/browser/AT/upstream/storage/deployment qualification",
+    "Private metadata only; no approval/enablement/dispatch/sends/publication/payment/provider actions"
+  ]
+}
