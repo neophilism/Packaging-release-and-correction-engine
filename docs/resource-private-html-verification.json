@@ -23,7 +23,11 @@
     "success": true,
     "logsInspected": true
   },
-  "installed": "pending",
+  "installed": {
+    "ordinaryTests": 48,
+    "newRestrictedMigrationFetchGroups": 8,
+    "compiledHttpJsByteMatchesBuild": true
+  },
   "finalHeadCi": "required",
   "limits": [
     "Opt-in factory; existing factory behavior preserved",
